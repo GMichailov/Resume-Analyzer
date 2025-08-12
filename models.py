@@ -7,4 +7,3 @@ class Resume(Base):
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String, nullable=False)
     content = Column(Text, nullable=False)
-    
