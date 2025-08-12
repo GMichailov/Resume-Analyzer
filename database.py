@@ -6,6 +6,7 @@ import asyncio
 import numpy as np
 
 from annoy import AnnoyIndex
+from utils import embedding_model
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./resumes.db"
 
@@ -18,6 +19,7 @@ Base = declarative_base()
 
 EMBEDDING_DIM = 384
 TREES = 10
+index = None
 
 def create_index():
     index_save_path = Path("uploads" / "index.ann")
@@ -26,17 +28,18 @@ def create_index():
         index.save(index_save_path)
 
 
-async def load_index():
-    return AnnoyIndex.load(str(Path("uploads/index.ann")))
+def load_index():
+    global index
+    index = AnnoyIndex.load(str(Path("uploads/index.ann")))
 
 
-async def add_to_index(embedding_model, resume_uuid: str, resume_content):
-    embedding_task = asyncio.create_task(embedding_model.encode, resume_content, convert_to_numpy=True)
-    index = await load_index()
+async def add_to_index(resume_uuid: str, resume_content):
+    embedding_task = asyncio.create_task(embedding_model, resume_content, convert_to_numpy=True)
     embedding = await embedding_task
     index.add_item(resume_uuid, embedding.tolist())
     index.build(TREES)
     index.save(str(Path("uploads" / "index.ann")))
     
 
-
+async def query_index():
+    pass

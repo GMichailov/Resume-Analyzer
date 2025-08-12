@@ -11,6 +11,8 @@ from database import (
     Base,
     engine,
     SessionLocal,
+    index,
+    load_index,
     add_to_index
 )
 from models import (
@@ -20,7 +22,8 @@ from resume_parser import (
     read_resume
 )
 from utils import (
-    load_embedding_model
+    load_embedding_model,
+    embedding_model,
 )
 
 
@@ -31,17 +34,19 @@ Base.metadata.create_all(bind=engine)
 
 UPLOAD_DIR = Path("uploads")
 FILES_DIR = Path("uploads/files")
-embedding_model = None
 app=FastAPI()
 
 @app.on_event("startup")
 def start_up():
     global embedding_model
+    global index
     UPLOAD_DIR.mkdir(exist_ok=True)
     FILES_DIR.mkdir(exist_ok=True)
-    embedding_model = load_embedding_model()
+    load_embedding_model()
     if not Path(UPLOAD_DIR / "index.ann").exists():
         create_index()
+    load_index
+    
 
 def get_db():
     db = SessionLocal()
@@ -77,5 +82,5 @@ async def get_resume_recommendations(job_description=Query(...)):
 
 
 @app.get("/best")
-async def get_best_resume_for_job_description():
+async def get_best_resumes_for_job_description():
     pass
