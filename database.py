@@ -34,12 +34,21 @@ def load_index():
 
 
 async def add_to_index(resume_uuid: str, resume_content):
-    embedding_task = asyncio.create_task(embedding_model, resume_content, convert_to_numpy=True)
+    embedding_task = asyncio.create_task(embedding_model.encode, resume_content, convert_to_numpy=True)
     embedding = await embedding_task
     index.add_item(resume_uuid, embedding.tolist())
     index.build(TREES)
     index.save(str(Path("uploads" / "index.ann")))
     
 
-async def query_index():
-    pass
+async def query_index(job_description: str, top_k: int, threshold: 0.8):
+    job_description_embedding = embedding_model.encode(job_description)
+    res = index.get_nns_by_vector(job_description_embedding, top_k, include_distances=True)
+    best = []
+    for filename, score in zip(*res):
+        if score > threshold:
+            best.append((filename, score))
+    if len(best) == 0:
+        return max(zip(*res), key=lambda x: x[1])
+    return best
+    

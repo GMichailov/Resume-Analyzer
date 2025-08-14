@@ -21,8 +21,10 @@ from models import (
 from resume_parser import (
     read_resume
 )
+from schema import (
+    BestPdfsParms
+)
 from utils import (
-    load_embedding_model,
     embedding_model,
 )
 
@@ -42,10 +44,9 @@ def start_up():
     global index
     UPLOAD_DIR.mkdir(exist_ok=True)
     FILES_DIR.mkdir(exist_ok=True)
-    load_embedding_model()
     if not Path(UPLOAD_DIR / "index.ann").exists():
         create_index()
-    load_index
+    load_index()
     
 
 def get_db():
@@ -77,10 +78,21 @@ async def upload_resume(file: UploadFile = File(...), db: Session = Depends(get_
 
 
 @app.get("/improvements/")
-async def get_resume_recommendations(job_description=Query(...)):
+async def get_resume_recommendations(job_description: bool=Query(...)):
     pass
 
 
 @app.get("/best")
-async def get_best_resumes_for_job_description():
-    pass
+async def get_best_resumes_for_job_description(params: BestPdfsParms):
+    if params.job_description is None or len(params.job_description)==0:
+        raise HTTPException(status_code=400, detail="Must have a job description.")
+    
+    if params.count > 5:
+        params.count = 5
+    elif params.count <= 0:
+        params.count = 1
+
+
+
+
+    
