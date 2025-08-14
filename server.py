@@ -1,10 +1,12 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Response, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 import shutil
 from pathlib import Path
 import asyncio
 from crud import (
-    create_resume
+    create_resume,
+    get_resume
 )
 from database import (
     create_index,
@@ -102,8 +104,25 @@ async def get_best_resumes_for_job_description(params: BestResumeParms):
         top_k=params.count,
     )
 
-
     return {"best" : best}
+
+
+@app.get('/resume')
+async def fetch_resume_file(file_uuid: str = Query(...), db: Session = Depends(get_db)):
+    resume = await get_resume(db=db, uuid=file_uuid)
+    if resume is None:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    
+    file_path = Path(FILES_DIR) / f"{file_uuid}"
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Resume file missing on disk")
+
+    return FileResponse(
+        file_path,
+        filename=resume.original_filename,
+        media_type="application/octet-stream"
+    )
 
 
 
