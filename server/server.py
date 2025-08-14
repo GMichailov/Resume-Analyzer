@@ -6,7 +6,8 @@ from pathlib import Path
 import asyncio
 from crud import (
     create_resume,
-    get_resume
+    get_resume,
+    check_existence
 )
 from database import (
     create_index,
@@ -29,6 +30,7 @@ from schema import (
 )
 from utils import (
     embedding_model,
+    hash_resume_content
 )
 
 
@@ -77,11 +79,15 @@ async def upload_resume(files: list[UploadFile] = File(...), db: Session = Depen
             content = read_resume(temp_path)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to read file: {e}")
+        
+        hash = hash_resume_content(content=content)
+        if check_existence(db, hash):
+            continue
 
         add_task = asyncio.create_task(add_to_index(embedding_model, f_uuid, content))
-        await create_resume(db, uuid=f_uuid, original_filename=original_filename, content=content)
+        await create_resume(db, uuid=f_uuid, original_filename=original_filename, content=content, hash=hash)
         await add_task
-        return Response(status_code=200)
+    return Response(status_code=200)
 
 
 @app.get("/improvements/")

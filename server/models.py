@@ -9,4 +9,5 @@ class Resume(Base):
     uuid = Column(String, nullable=False)
     original_filename = Column(Text, nullable=False)
     content = Column(Text, nullable=False)
+    hash = Column(String(64), nullable=False, index=True, unique=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
