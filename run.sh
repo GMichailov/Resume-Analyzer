@@ -1,1 +1,3 @@
-uvicorn app.main:app --reload
+uvicorn server.server:app --reload --log-level debug
+
+streamlit run fronted.app.py
