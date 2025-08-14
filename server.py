@@ -97,11 +97,13 @@ async def get_best_resumes_for_job_description(params: BestResumeParms):
     elif params.count <= 0:
         params.count = 1
 
-    best = query_index(
+    best = await query_index(
         job_description=params.job_description, 
         top_k=params.count,
     )
 
+
+    return {"best" : best}
 
 
 

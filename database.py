@@ -41,14 +41,11 @@ async def add_to_index(resume_uuid: str, resume_content):
     index.save(str(Path("uploads" / "index.ann")))
     
 
-async def query_index(job_description: str, top_k: int, threshold: 0.8):
+async def query_index(job_description: str, top_k: int, threshold: 0.8) -> list[tuple]:
     job_description_embedding = embedding_model.encode(job_description)
     res = index.get_nns_by_vector(job_description_embedding, top_k, include_distances=True)
     best = []
-    for filename, score in zip(*res):
-        if score > threshold:
-            best.append((filename, score))
-    if len(best) == 0:
-        return max(zip(*res), key=lambda x: x[1])
+    for uuid, score in zip(*res):
+        best.append((uuid, score))
     return best
     
