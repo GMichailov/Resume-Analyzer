@@ -26,7 +26,8 @@ from resume_parser import (
     read_resume
 )
 from schema import (
-    BestResumeParms
+    BestResumeParms,
+    ImprovementsInput
 )
 from utils import (
     embedding_model,
@@ -91,8 +92,36 @@ async def upload_resume(files: list[UploadFile] = File(...), db: Session = Depen
 
 
 @app.get("/improvements/")
-async def get_resume_recommendations(job_description: bool=Query(...)):
-    pass
+async def get_resume_improvements(input: ImprovementsInput, db: Session = Depends(get_db)):
+    # Inspect the resume and add to index and db if never seen before.
+    if Path(input.resume).suffix.lower() not in (".pdf", ".docx"):
+        raise HTTPException(status_code=400, detail="Only PDF and DOCX files are allowed.")
+    original_filename = input.resume.filename
+    ext = Path(original_filename).suffix.lower()
+
+    f_uuid = str(uuid4())
+    temp_path = FILES_DIR / f_uuid+ext
+    with open(temp_path, "wb") as buffer:
+        shutil.copyfileobj(input.resume.file, buffer)
+    try:
+        content = read_resume(temp_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read file: {e}")
+    
+    hash = hash_resume_content(content=content)
+    if not check_existence(db, hash):
+        add_task = asyncio.create_task(add_to_index(embedding_model, f_uuid, content))
+        await create_resume(db, uuid=f_uuid, original_filename=original_filename, content=content, hash=hash)
+        await add_task
+
+    # Parse the resume into sections
+    # Parse the job description into sections
+    # Create embeddings for each.
+    # Manual keyword matching scores.
+    # Embedding match ups.
+    # Query LLM to improve the sections with low scores.
+    # Future feature: Ask user if they would like to add these changes (separate route).
+    
 
 
 @app.get("/best")
