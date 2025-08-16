@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 import shutil
 from pathlib import Path
 import asyncio
+import os
 from crud import (
     create_resume,
     get_resume,
@@ -27,11 +28,14 @@ from resume_parser import (
 )
 from schema import (
     BestResumeParms,
-    ImprovementsInput
+    ImprovementsInput,
+    ModelUpdate
 )
 from utils import (
     embedding_model,
-    hash_resume_content
+    hash_resume_content,
+    load_ollama_model,
+    unload_ollama_model
 )
 
 
@@ -122,8 +126,6 @@ async def get_resume_improvements(input: ImprovementsInput, db: Session = Depend
     # Query LLM to improve the sections with low scores.
     # Future feature: Ask user if they would like to add these changes (separate route).
     
-
-
 @app.get("/best")
 async def get_best_resumes_for_job_description(params: BestResumeParms):
     if params.job_description is None or len(params.job_description)==0:
@@ -159,7 +161,30 @@ async def fetch_resume_file(file_uuid: str = Query(...), db: Session = Depends(g
         media_type="application/octet-stream"
     )
 
+@app.post('/models')
+async def set_model_info(md: ModelUpdate):
+    if md.provider not in ["ollama", "anthropic", "openai"]:
+        raise HTTPException(status_code=400, detail=f"Invalid Provider: {md.provider.capitalize()}")
+    
+    if md.model not in os.getenv(f"{md.model.upper()}_MODELS").split(","):
+        raise HTTPException(status_code=400, detail=f"Model is not supported for {md.provider.capitalize()}: {md.model}")
 
+    if md.api_key is None and md.provider != "ollama" and not os.getenv(f"{md.provider}_API_KEY"):
+        raise HTTPException(status_code=400, detail=f"API key is not set for {md.provider.capitalize()}.")
+    
+    if os.getenv("MODEL_PROVIDER") == "ollama":
+        await unload_ollama_model(os.getenv("MODEL"))
+
+    if md.provider == "ollama":
+        model_load_task = asyncio.create_task(load_ollama_model(md.model))
+    
+    os.environ["MODEL_PROVIDER"]=md.provider
+    os.environ["MODEL"]=md.model
+    if md.api_key is not None:
+        os.environ[f"{md.provider.upper()}_API_KEY"] = md.api_key
+    await model_load_task
+    return Response()
+    
 
 
 

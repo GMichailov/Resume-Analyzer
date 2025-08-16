@@ -12,3 +12,8 @@ class BestResumeParms(BaseModel):
 
 class BestResumeRet(BaseModel):
     resumes: list[File]
+
+class ModelUpdate(BaseModel):
+    provider: str
+    model: str
+    api_key: str | None
