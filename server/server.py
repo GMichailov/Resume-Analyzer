@@ -24,7 +24,8 @@ from models import (
     Resume
 )
 from resume_parser import (
-    read_resume
+    read_resume,
+    get_important_info
 )
 from schema import (
     BestResumeParms,
@@ -88,7 +89,9 @@ async def upload_resume(files: list[UploadFile] = File(...), db: Session = Depen
         hash = hash_resume_content(content=content)
         if check_existence(db, hash):
             continue
-
+        
+        info = get_important_info(content)
+        info = format_info(info)
         add_task = asyncio.create_task(add_to_index(embedding_model, f_uuid, content))
         await create_resume(db, uuid=f_uuid, original_filename=original_filename, content=content, hash=hash)
         await add_task
