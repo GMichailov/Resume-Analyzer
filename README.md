@@ -1,3 +1,5 @@
+INCOMPLETE
+
 # Resume Analyser
 
 All of these resume analyzers are paid, and let's be honest, absolute garbage. They make big promises and deliver close to nothing. I wanted to make something free or as close to free as possible because paying 8.99 a month for an AI wrapper is ridiculous.
